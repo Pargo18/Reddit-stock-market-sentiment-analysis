@@ -1,9 +1,6 @@
 import numpy as np
 import pandas as pd
-from scipy.stats import t
-import matplotlib.pyplot as plt
-import seaborn as sns
-import datetime
+from scipy.stats import t, f
 from generate_features import compile_option_data
 
 import matplotlib
@@ -17,8 +14,8 @@ def solve_ols(X, Y):
 
 def error_estimator(beta, X, Y):
     residuals = Y - np.dot(X, beta)
-    residual_sq_sum = np.dot(residuals.T, residuals)
-    sigma_var = residual_sq_sum.item() / (X.shape[0] - X.shape[1])
+    RSS = np.dot(residuals.T, residuals)
+    sigma_var = RSS.item() / (X.shape[0] - X.shape[1])
     return sigma_var
 
 def calc_beta_var(sigma_var, X):
@@ -34,7 +31,22 @@ def calc_p_value(beta, beta_var, dof, beta_Ho=None):
         p_val[i] = 2 * (1 - t.cdf(x=np.abs(T_obs), df=dof, loc=0, scale=1))
     return p_val
 
-def regression_analysis(df, covariate_col, outcome_col, beta_Ho=None):
+def calc_f_value(beta, X, Y):
+    p_1 = 1
+    p_2 = beta.shape[0] - 1
+    n = X.shape[0]
+    d_1 = p_2 - p_1
+    d_2 = n-p_2
+    residuals = Y - beta[0]
+    RSS_1 = np.dot(residuals.T, residuals)
+    residuals = Y - np.dot(X, beta)
+    RSS_2 = np.dot(residuals.T, residuals)
+    f_stat = ((RSS_1 - RSS_2) / d_1) / (RSS_2 / d_2)
+    f_stat = f_stat.item()
+    f_val = 1 - f.cdf(x=f_stat, dfn=d_1, dfd=d_2)
+    return f_val
+
+def linear_regression(df, covariate_col, outcome_col, beta_Ho=None):
     X = df[covariate_col].to_numpy()
     X = np.c_[np.ones(X.shape[0]).reshape(-1, 1), X]
     Y = df[outcome_col].to_numpy().reshape(-1, 1)
@@ -43,34 +55,38 @@ def regression_analysis(df, covariate_col, outcome_col, beta_Ho=None):
     sigma_var = error_estimator(beta, X, Y)
     beta_var = calc_beta_var(sigma_var, X)
     p_val = calc_p_value(beta, beta_var, dof, beta_Ho=beta_Ho)
-    return p_val
+    f_val = calc_f_value(beta, X, Y)
+    return p_val[1:], f_val
 
 #///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-vol_data = pd.read_csv('..\\Data\\volatility_data.csv')
-vol_data.rename(columns={'Unnamed: 0': 'Timestamp'}, inplace=True)
-tickers = [col for col in vol_data.columns if col != 'Timestamp']
+if __name__ == '__main__':
 
-sent_data = pd.read_csv('..\\Data\\UpdatedSubmissions.csv')
-sent_data.rename(columns={'DateTime': 'Timestamp'}, inplace=True)
-sent_data.drop(columns=['index'], inplace=True)
+    vol_data = pd.read_csv('..\\Data\\volatility_data.csv')
+    vol_data.rename(columns={'Unnamed: 0': 'Timestamp'}, inplace=True)
+    tickers = [col for col in vol_data.columns if col != 'Timestamp']
+
+    sent_data = pd.read_csv('..\\Data\\UpdatedSubmissions.csv')
+    sent_data.rename(columns={'DateTime': 'Timestamp'}, inplace=True)
+    sent_data.drop(columns=['index'], inplace=True)
 
 
-general_features = ['score', 'upvote_rate', 'put_comments', 'buy_comments', 'call_comments',
-                    'sell_comments', 'compound', 'mean_NLTK_comments']
+    general_features = ['score', 'upvote_rate', 'put_comments', 'buy_comments', 'call_comments',
+                        'sell_comments', 'compound', 'mean_NLTK_comments']
 
-df_pval = pd.DataFrame(data=[], columns=tickers, index=['intercept'] + general_features + ['ticker_comments'])
+    df_pval = pd.DataFrame(data=[], columns=tickers, index=general_features + ['ticker_comments'] + ['ANOVA'])
 
-for ticker in tickers:
+    # for ticker in tickers:
+    for ticker in ['GME']:
 
-    if ticker in sent_data.columns:
+        if ticker in sent_data.columns:
 
-        features = general_features + [ticker+'_comments']
+            features = general_features + [ticker+'_comments']
 
-        df = compile_option_data(sent_data=sent_data, vol_data=vol_data, ticker=ticker, features=features)
+            df = compile_option_data(sent_data=sent_data, vol_data=vol_data, ticker=ticker, features=features)
 
-        df = df.groupby(['Timestamp']).sum()
+            df = df.groupby(['Timestamp']).sum()
 
-        if len(df) > len(features) + 1:
-            p_val = regression_analysis(df, covariate_col=features, outcome_col='Volatility')
-            df_pval[ticker] = p_val
+            if len(df) > len(features) + 1:
+                p_val, f_val = linear_regression(df, covariate_col=features, outcome_col='Volatility')
+                df_pval[ticker] = np.append(p_val, f_val)
