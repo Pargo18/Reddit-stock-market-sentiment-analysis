@@ -1,31 +1,37 @@
 import yfinance as yf
 import pandas as pd
-import time
-from datetime import datetime
+import numpy as np
+import datetime
+from Volatility_Calculator import historical_volatility
 
 import matplotlib
 matplotlib.use("TkAgg")
 
-def keep_integer_hours(dates):
-    idx = [i for i, date in enumerate(dates) if date.minute == 0]
-    dates_clean = [pd.Timestamp(datetime(year=dates[i].year, month=dates[i].month, day=dates[i].day, hour=dates[i].hour)) for i in idx]
-    return idx, dates_clean
+#///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-# df_tickers = pd.read_csv('..\\Data\\wallstreetbets_2021.csv')
-df_tickers = pd.read_csv('..\\Data\\FinalTickers.csv')
-ticker_lst = df_tickers['ticker'].tolist()
+def download_options(tickers, date_start='2019-1-1', date_end=None, interval='1d'):
+    if date_end is None:
+        date_end = datetime.date.today()
+    option_data = yf.download(tickers, start=date_start, end=date_end, interval=interval)
+    option_data = option_data.stack(level=0).rename_axis(['Date', 'Value']).reset_index(level=1)
+    return option_data
 
-stock_data = yf.download(ticker_lst, start='2022-04-01', end='2022-05-10', interval='1d')
-stock_data = stock_data.stack(level=0).rename_axis(['Date', 'Value']).reset_index(level=1)
+def compile_df_close(df_raw):
+    df_close = df_raw.loc[df_raw['Value'] == 'Close']
+    df_close.drop(columns='Value', inplace=True)
+    return df_close
 
-stock_data_close = stock_data.loc[stock_data['Value'] == 'Close']
-stock_data_close.drop(columns='Value', inplace=True)
+#///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-stock_data_vol = stock_data_close.pct_change().rolling(3).std()
-stock_data_vol.dropna(how='all', inplace=True)
-date_idx, dates_clean = keep_integer_hours(stock_data_vol.index.to_list())
-stock_data_vol = stock_data_vol.iloc[date_idx]
-stock_data_vol.index = dates_clean
-# stock_data_vol.plot()
+if __name__ == '__main__':
 
-stock_data_vol.to_csv('..\\Data\\Volatility_data.csv', index=True)
+    df_tickers = pd.read_csv('..\\Data\\FinalTickers.csv')
+    ticker_lst = df_tickers['ticker'].tolist()
+
+    option_data = download_options(ticker_lst)
+
+    option_data_close = compile_df_close(df_raw=option_data)
+
+    option_data_vol = historical_volatility(df_close=option_data_close, trading_days=252)
+
+    option_data_vol.to_csv('..\\Data\\Volatility_data.csv', index=True)
