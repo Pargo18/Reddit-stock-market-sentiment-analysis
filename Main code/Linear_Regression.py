@@ -93,8 +93,8 @@ if __name__ == '__main__':
                         # 'mean_NLTK_comments',
                         'LM_Positive',
                         'LM_Negative',
-                        'LM_Polarity',
-                        'LM_Subjectivity',
+                        # 'LM_Polarity',
+                        # 'LM_Subjectivity',
                         # 'LM_Positive_comments',
                         # 'LM_Negative_comments',
                         # 'LM_Polarity_comments',
@@ -107,7 +107,8 @@ if __name__ == '__main__':
                    #  'buy_comments',
                    #  'call_comments',
                    #  'sell_comments',
-                    'upvotes']
+                   #  'upvotes'
+                    ]
     features_mean = [
                      # 'upvote_rate',
                      # 'compound',
@@ -116,16 +117,19 @@ if __name__ == '__main__':
                      'Volume',
                      'LM_Positive',
                      'LM_Negative',
-                     'LM_Polarity',
-                     'LM_Subjectivity',
+                     # 'LM_Polarity',
+                     # 'LM_Subjectivity',
                      # 'LM_Positive_comments',
                      # 'LM_Negative_comments',
                      # 'LM_Polarity_comments',
                      # 'LM_Subjectivity_comments'
                      ]
-    # features_max = ['score']
-    features_max = []
+    features_max = [
+                    # 'score',
+                    'upvotes'
+                    ]
 
+    df_beta = pd.DataFrame(data=[], columns=tickers, index=general_features + ['ticker_comments'])
     df_pval = pd.DataFrame(data=[], columns=tickers, index=general_features + ['ticker_comments'] + ['ANOVA'])
 
     lag = 0
@@ -170,4 +174,5 @@ if __name__ == '__main__':
             if inv:
                 if len(df) > len(features) + 1:
                     beta, p_val, f_val = linear_regression(df, covariate_col=features, outcome_col='Volatility')
+                    df_beta[ticker] = beta[1:]
                     df_pval[ticker] = np.append(p_val, f_val)
