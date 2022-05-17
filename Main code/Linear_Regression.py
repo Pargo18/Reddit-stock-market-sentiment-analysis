@@ -8,6 +8,14 @@ matplotlib.use("TkAgg")
 
 #///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+def check_invertability(X):
+    try:
+        X_inv = np.linalg.inv(np.dot(X.T, X))
+    except:
+        return False
+    else:
+        return True
+
 def solve_OLS(X, Y):
     beta = np.dot(np.linalg.inv(np.dot(X.T, X)), np.dot(X.T, Y))
     return beta
@@ -75,26 +83,55 @@ if __name__ == '__main__':
     sent_data['upvotes'] = sent_data['upvote_rate'] * sent_data['score']
 
     general_features = [
-                        'score',
-                        'upvote_rate',
-                        'put_comments',
-                        'buy_comments',
-                        'call_comments',
-                        'sell_comments',
-                        'compound',
-                        'mean_NLTK_comments'
+                        # 'score',
+                        # 'upvote_rate',
+                        # 'put_comments',
+                        # 'buy_comments',
+                        # 'call_comments',
+                        # 'sell_comments',
+                        # 'compound',
+                        # 'mean_NLTK_comments',
+                        'LM_Positive',
+                        'LM_Negative',
+                        'LM_Polarity',
+                        'LM_Subjectivity',
+                        # 'LM_Positive_comments',
+                        # 'LM_Negative_comments',
+                        # 'LM_Polarity_comments',
+                        # 'LM_Subjectivity_comments',
+                        'upvotes'
     ]
 
-    features_sum = ['put_comments', 'buy_comments', 'call_comments', 'sell_comments']
-    features_mean = ['upvote_rate', 'compound', 'mean_NLTK_comments', 'Volatility', 'Volume']
-    features_max = ['score']
+    features_sum = [
+                   # 'put_comments',
+                   #  'buy_comments',
+                   #  'call_comments',
+                   #  'sell_comments',
+                    'upvotes']
+    features_mean = [
+                     # 'upvote_rate',
+                     # 'compound',
+                     # 'mean_NLTK_comments',
+                     'Volatility',
+                     'Volume',
+                     'LM_Positive',
+                     'LM_Negative',
+                     'LM_Polarity',
+                     'LM_Subjectivity',
+                     # 'LM_Positive_comments',
+                     # 'LM_Negative_comments',
+                     # 'LM_Polarity_comments',
+                     # 'LM_Subjectivity_comments'
+                     ]
+    # features_max = ['score']
+    features_max = []
 
     df_pval = pd.DataFrame(data=[], columns=tickers, index=general_features + ['ticker_comments'] + ['ANOVA'])
 
     lag = 0
 
-    # for ticker in tickers:
-    for ticker in ['GME']:
+    for ticker in tickers:
+    # for ticker in ['GME']:
 
         if ticker in sent_data.columns:
 
@@ -121,10 +158,16 @@ if __name__ == '__main__':
                               features_mean=features_mean,
                               features_max=features_max)
 
+            # df['TIS'] = (df['buy_comments'] + df['call_comments']) / \
+            #             (df['buy_comments'] + df['call_comments'] + df['sell_comments'] + df['put_comments'])
+            # features = [f for f in features if f not in ['put_comments', 'buy_comments', 'call_comments', 'sell_comments']]
+            # features += ['TIS']
+
             # df = df.groupby(['Timestamp']).mean()
             # df['Volatility'] = np.log(df['Volatility'].to_numpy())
 
-            if len(df) > len(features) + 1:
-                beta, p_val, f_val = linear_regression(df, covariate_col=features, outcome_col='Volatility')
-                df_pval[ticker] = np.append(p_val, f_val)
-
+            inv = check_invertability(df[features].to_numpy())
+            if inv:
+                if len(df) > len(features) + 1:
+                    beta, p_val, f_val = linear_regression(df, covariate_col=features, outcome_col='Volatility')
+                    df_pval[ticker] = np.append(p_val, f_val)
