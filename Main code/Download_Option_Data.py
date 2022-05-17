@@ -16,8 +16,8 @@ def download_options(tickers, date_start='2019-1-1', date_end=None, interval='1d
     option_data = option_data.stack(level=0).rename_axis(['Date', 'Value']).reset_index(level=1)
     return option_data
 
-def compile_df_close(df_raw):
-    df_close = df_raw.loc[df_raw['Value'] == 'Close']
+def compile_df(df_raw, attr='Close'):
+    df_close = df_raw.loc[df_raw['Value'] == attr]
     df_close.drop(columns='Value', inplace=True)
     return df_close
 
@@ -30,8 +30,11 @@ if __name__ == '__main__':
 
     option_data = download_options(ticker_lst)
 
-    option_data_close = compile_df_close(df_raw=option_data)
+    option_data_close = compile_df(df_raw=option_data, attr='Close')
 
     option_data_vol = historical_volatility(df_close=option_data_close, trading_days=252)
-
     option_data_vol.to_csv('..\\Data\\Volatility_data.csv', index=True)
+
+    option_data_volume = compile_df(df_raw=option_data, attr='Volume')
+    option_data_volume.to_csv('..\\Data\\Volume_data.csv', index=True)
+
