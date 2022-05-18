@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import t, f
 from generate_features import compile_option_data, fix_features
+import seaborn as sns
 
 import matplotlib
 matplotlib.use("TkAgg")
@@ -64,15 +65,18 @@ def linear_regression(df, covariate_col, outcome_col, beta_Ho=None):
     beta_var = calc_beta_var(sigma_var, X)
     p_val = calc_p_value(beta, beta_var, dof, beta_Ho=beta_Ho)
     f_val = calc_f_value(beta, X, Y)
-    return beta, p_val[1:], f_val
+    return beta, np.sqrt(beta_var), p_val[1:], f_val
 
 #///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 if __name__ == '__main__':
 
-    vol_data = pd.read_csv('..\\Data\\volatility_data.csv')
+    # vol_data = pd.read_csv('..\\Data\\volatility_data.csv')
+    vol_data = pd.read_csv('..\\Data\\Implied_volatility.csv')
     vol_data.rename(columns={'Unnamed: 0': 'Timestamp'}, inplace=True)
-    tickers = [col for col in vol_data.columns if col != 'Timestamp']
+
+    # tickers = [col for col in vol_data.columns if col != 'Timestamp']
+    tickers = ['AMC', 'BB', 'GME', 'SPY', 'TSLA']
 
     volume_data = pd.read_csv('..\\Data\\Volume_data.csv')
     volume_data.rename(columns={'Date': 'Timestamp'}, inplace=True)
@@ -83,40 +87,40 @@ if __name__ == '__main__':
     sent_data['upvotes'] = sent_data['upvote_rate'] * sent_data['score']
 
     general_features = [
-                        # 'score',
-                        # 'upvote_rate',
-                        # 'put_comments',
-                        # 'buy_comments',
-                        # 'call_comments',
-                        # 'sell_comments',
-                        # 'compound',
-                        # 'mean_NLTK_comments',
-                        'LM_Positive',
-                        'LM_Negative',
+                        'score',
+                        'upvote_rate',
+                        'put_comments',
+                        'buy_comments',
+                        'call_comments',
+                        'sell_comments',
+                        'compound',
+                        'mean_NLTK_comments'
+                        # 'LM_Positive',
+                        # 'LM_Negative',
                         # 'LM_Polarity',
                         # 'LM_Subjectivity',
                         # 'LM_Positive_comments',
                         # 'LM_Negative_comments',
                         # 'LM_Polarity_comments',
                         # 'LM_Subjectivity_comments',
-                        'upvotes'
+                        # 'upvotes'
     ]
 
     features_sum = [
-                   # 'put_comments',
-                   #  'buy_comments',
-                   #  'call_comments',
-                   #  'sell_comments',
+                   'put_comments',
+                    'buy_comments',
+                    'call_comments',
+                    'sell_comments'
                    #  'upvotes'
                     ]
     features_mean = [
-                     # 'upvote_rate',
-                     # 'compound',
-                     # 'mean_NLTK_comments',
-                     'Volatility',
-                     'Volume',
-                     'LM_Positive',
-                     'LM_Negative',
+                     'upvote_rate',
+                     'compound',
+                     'mean_NLTK_comments',
+                     'Volatility'
+                     # 'Volume',
+                     # 'LM_Positive',
+                     # 'LM_Negative',
                      # 'LM_Polarity',
                      # 'LM_Subjectivity',
                      # 'LM_Positive_comments',
@@ -125,17 +129,18 @@ if __name__ == '__main__':
                      # 'LM_Subjectivity_comments'
                      ]
     features_max = [
-                    # 'score',
-                    'upvotes'
+                    'score'
+                    # 'upvotes'
                     ]
 
-    df_beta = pd.DataFrame(data=[], columns=tickers, index=general_features + ['ticker_comments'])
+    df_beta_ols = pd.DataFrame(data=[], columns=tickers, index=general_features + ['ticker_comments'])
+    df_beta_sd = pd.DataFrame(data=[], columns=tickers, index=general_features + ['ticker_comments'])
     df_pval = pd.DataFrame(data=[], columns=tickers, index=general_features + ['ticker_comments'] + ['ANOVA'])
+    df_tstudent_dof = pd.DataFrame(data=[], columns=tickers, index=[0])
 
     lag = 0
 
     for ticker in tickers:
-    # for ticker in ['GME']:
 
         if ticker in sent_data.columns:
 
@@ -148,14 +153,13 @@ if __name__ == '__main__':
                                      new_attr='Volatility',
                                      lag=lag)
 
-            compiled_volume = compile_option_data(df_1=sent_data,
-                                                  df_2=volume_data,
-                                                  ticker=ticker,
-                                                  features=features,
-                                                  new_attr='Volume',
-                                                  lag=lag)
-
-            df['Volume'] = compiled_volume['Volume']
+            # compiled_volume = compile_option_data(df_1=sent_data,
+            #                                       df_2=volume_data,
+            #                                       ticker=ticker,
+            #                                       features=features,
+            #                                       new_attr='Volume',
+            #                                       lag=lag)
+            # df['Volume'] = compiled_volume['Volume']
 
             df = fix_features(df=df,
                               features_sum=features_sum+[ticker+'_comments'],
@@ -167,12 +171,19 @@ if __name__ == '__main__':
             # features = [f for f in features if f not in ['put_comments', 'buy_comments', 'call_comments', 'sell_comments']]
             # features += ['TIS']
 
-            # df = df.groupby(['Timestamp']).mean()
             # df['Volatility'] = np.log(df['Volatility'].to_numpy())
 
             inv = check_invertability(df[features].to_numpy())
             if inv:
                 if len(df) > len(features) + 1:
-                    beta, p_val, f_val = linear_regression(df, covariate_col=features, outcome_col='Volatility')
-                    df_beta[ticker] = beta[1:]
+                    beta, beta_sd, p_val, f_val = linear_regression(df, covariate_col=features, outcome_col='Volatility')
+                    df_beta_ols[ticker] = beta[1:]
+                    df_beta_sd[ticker] = beta_sd[1:]
                     df_pval[ticker] = np.append(p_val, f_val)
+                    df_tstudent_dof[ticker] = len(df) - (len(features) + 1)
+
+
+        df_beta_ols.to_csv('..\\Data\\Output\\Beta_OLS.csv')
+        df_beta_sd.to_csv('..\\Data\\Output\\Beta_Sd.csv')
+        df_pval.to_csv('..\\Data\\Output\\p_values.csv')
+        df_tstudent_dof.to_csv('..\\Data\\Output\\dof_tstudent.csv', index=False)
