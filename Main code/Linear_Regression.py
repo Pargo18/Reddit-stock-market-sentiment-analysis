@@ -72,8 +72,11 @@ def linear_regression(df, covariate_col, outcome_col, beta_Ho=None):
 if __name__ == '__main__':
 
     # vol_data = pd.read_csv('..\\Data\\volatility_data.csv')
-    vol_data = pd.read_csv('..\\Data\\Implied_volatility.csv')
+    # vol_data = pd.read_csv('..\\Data\\Implied_volatility.csv')
+    # vol_data = pd.read_csv('..\\Data\\Close_data.csv')
+    vol_data = pd.read_csv('..\\Data\\Return_data.csv')
     vol_data.rename(columns={'Unnamed: 0': 'Timestamp'}, inplace=True)
+    vol_data.rename(columns={'Date': 'Timestamp'}, inplace=True)
 
     # tickers = [col for col in vol_data.columns if col != 'Timestamp']
     tickers = ['AMC', 'BB', 'GME', 'SPY', 'TSLA']
@@ -172,6 +175,7 @@ if __name__ == '__main__':
             # features += ['TIS']
 
             # df['Volatility'] = np.log(df['Volatility'].to_numpy())
+            df['Volatility'] = np.exp(df['Volatility'].to_numpy())
 
             inv = check_invertability(df[features].to_numpy())
             if inv:
@@ -183,7 +187,9 @@ if __name__ == '__main__':
                     df_tstudent_dof[ticker] = len(df) - (len(features) + 1)
 
 
-        df_beta_ols.to_csv('..\\Data\\Output\\Beta_OLS.csv')
-        df_beta_sd.to_csv('..\\Data\\Output\\Beta_Sd.csv')
-        df_pval.to_csv('..\\Data\\Output\\p_values.csv')
-        df_tstudent_dof.to_csv('..\\Data\\Output\\dof_tstudent.csv', index=False)
+    sns.pairplot(df, kind='reg')
+
+    df_beta_ols.to_csv('..\\Data\\Output\\Beta_OLS.csv')
+    df_beta_sd.to_csv('..\\Data\\Output\\Beta_Sd.csv')
+    df_pval.to_csv('..\\Data\\Output\\p_values.csv')
+    df_tstudent_dof.to_csv('..\\Data\\Output\\dof_tstudent.csv', index=False)
