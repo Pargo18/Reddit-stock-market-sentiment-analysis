@@ -31,6 +31,7 @@ if __name__ == '__main__':
     option_data = download_options(ticker_lst)
 
     option_data_close = compile_df(df_raw=option_data, attr='Close')
+    option_data_close.to_csv('..\\Data\\Close_data.csv', index=True)
 
     option_data_vol = historical_volatility(df_close=option_data_close, trading_days=252)
     option_data_vol.to_csv('..\\Data\\Volatility_data.csv', index=True)

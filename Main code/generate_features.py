@@ -28,18 +28,15 @@ def compile_option_data(df_1, df_2, features, ticker, new_attr='Volatility', lag
         if pd.to_datetime(timestep) in [pd.to_datetime(item) for item in df_vol['Timestamp']]:
             df[new_attr].iloc[i] = df_vol[df_vol['Timestamp'] == pd.to_datetime(timestep)][new_attr]
         else:
-            if pd.to_datetime(timestep) - datetime.timedelta(1) in [pd.to_datetime(item) for item in
-                                                                    df_vol['Timestamp']]:
+            if pd.to_datetime(timestep) + datetime.timedelta(1) in [pd.to_datetime(item) for item in df_vol['Timestamp']]:
                 df[new_attr].iloc[i] = \
-                df_vol[df_vol['Timestamp'] == pd.to_datetime(timestep) - datetime.timedelta(1)][new_attr]
-            elif pd.to_datetime(timestep) - datetime.timedelta(2) in [pd.to_datetime(item) for item in
-                                                                      df_vol['Timestamp']]:
+                df_vol[df_vol['Timestamp'] == pd.to_datetime(timestep) + datetime.timedelta(1)][new_attr]
+            elif pd.to_datetime(timestep) + datetime.timedelta(2) in [pd.to_datetime(item) for item in df_vol['Timestamp']]:
                 df[new_attr].iloc[i] = \
-                df_vol[df_vol['Timestamp'] == pd.to_datetime(timestep) - datetime.timedelta(2)][new_attr]
-            elif pd.to_datetime(timestep) - datetime.timedelta(3) in [pd.to_datetime(item) for item in
-                                                                      df_vol['Timestamp']]:
+                df_vol[df_vol['Timestamp'] == pd.to_datetime(timestep) + datetime.timedelta(2)][new_attr]
+            elif pd.to_datetime(timestep) + datetime.timedelta(3) in [pd.to_datetime(item) for item in df_vol['Timestamp']]:
                 df[new_attr].iloc[i] = \
-                df_vol[df_vol['Timestamp'] == pd.to_datetime(timestep) - datetime.timedelta(3)][new_attr]
+                df_vol[df_vol['Timestamp'] == pd.to_datetime(timestep) + datetime.timedelta(3)][new_attr]
 
     return df
 
