@@ -71,10 +71,10 @@ def linear_regression(df, covariate_col, outcome_col, beta_Ho=None):
 
 if __name__ == '__main__':
 
-    # vol_data = pd.read_csv('..\\Data\\volatility_data.csv')
-    # vol_data = pd.read_csv('..\\Data\\Implied_volatility.csv')
-    # vol_data = pd.read_csv('..\\Data\\Close_data.csv')
-    vol_data = pd.read_csv('..\\Data\\Return_data.csv')
+    # vol_data = pd.read_csv('..\\..\\Data\\volatility_data.csv')
+    vol_data = pd.read_csv('..\\..\\Data\\Implied_volatility.csv')
+    # vol_data = pd.read_csv('..\\..\\Data\\Close_data.csv')
+    # vol_data = pd.read_csv('..\\..\\Data\\Return_data.csv')
     vol_data.rename(columns={'Unnamed: 0': 'Timestamp'}, inplace=True)
     vol_data.rename(columns={'Date': 'Timestamp'}, inplace=True)
 
@@ -92,12 +92,12 @@ if __name__ == '__main__':
     general_features = [
                         'score',
                         'upvote_rate',
-                        'put_comments',
+                        # 'put_comments',
                         'buy_comments',
-                        'call_comments',
+                        # 'call_comments',
                         'sell_comments',
-                        'compound',
-                        'mean_NLTK_comments'
+                        'compound'
+                        # 'mean_NLTK_comments'
                         # 'LM_Positive',
                         # 'LM_Negative',
                         # 'LM_Polarity',
@@ -110,16 +110,16 @@ if __name__ == '__main__':
     ]
 
     features_sum = [
-                   'put_comments',
+                   # 'put_comments',
                     'buy_comments',
-                    'call_comments',
+                    # 'call_comments',
                     'sell_comments'
                    #  'upvotes'
                     ]
     features_mean = [
                      'upvote_rate',
                      'compound',
-                     'mean_NLTK_comments',
+                     # 'mean_NLTK_comments',
                      'Volatility'
                      # 'Volume',
                      # 'LM_Positive',
@@ -141,7 +141,7 @@ if __name__ == '__main__':
     df_pval = pd.DataFrame(data=[], columns=tickers, index=general_features + ['ticker_comments'] + ['ANOVA'])
     df_tstudent_dof = pd.DataFrame(data=[], columns=tickers, index=[0])
 
-    lag = 0
+    lag = 1
 
     for ticker in tickers:
 
@@ -175,7 +175,6 @@ if __name__ == '__main__':
             # features += ['TIS']
 
             # df['Volatility'] = np.log(df['Volatility'].to_numpy())
-            df['Volatility'] = np.exp(df['Volatility'].to_numpy())
 
             inv = check_invertability(df[features].to_numpy())
             if inv:
@@ -187,9 +186,12 @@ if __name__ == '__main__':
                     df_tstudent_dof[ticker] = len(df) - (len(features) + 1)
 
 
-    sns.pairplot(df, kind='reg')
+    # sns.pairplot(df, kind='reg')
+    # sns.pairplot(df)
+    # import matplotlib.pyplot as plt
+    # plt.suptitle(ticker, fontsize=16)
 
-    df_beta_ols.to_csv('..\\Data\\Output\\Beta_OLS.csv')
-    df_beta_sd.to_csv('..\\Data\\Output\\Beta_Sd.csv')
-    df_pval.to_csv('..\\Data\\Output\\p_values.csv')
-    df_tstudent_dof.to_csv('..\\Data\\Output\\dof_tstudent.csv', index=False)
+    df_beta_ols.to_csv('..\\..\\Data\\Output\\Beta_OLS.csv')
+    df_beta_sd.to_csv('..\\..\\Data\\Output\\Beta_Sd.csv')
+    df_pval.to_csv('..\\..\\Data\\Output\\p_values.csv')
+    df_tstudent_dof.to_csv('..\\..\\Data\\Output\\dof_tstudent.csv', index=False)
