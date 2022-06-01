@@ -10,9 +10,7 @@ def sort_portfolio_quintiles(df_metric, n_port=5):
     df_portfolio = pd.DataFrame(data=[port_sort], columns=df_metric.columns)
     return df_portfolio
 
-
 #///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 if __name__ == '__main__':
 
