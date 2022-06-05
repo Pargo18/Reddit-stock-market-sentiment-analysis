@@ -37,6 +37,9 @@ def metric_norm(x):
     # return np.linalg.norm(np.log(x), axis=0) / x.shape[0]
     return np.linalg.norm(x, axis=0) / x.shape[0]
 
+def metric_last(x):
+   return x[-1, ...]
+
 def apply_metric(df_diff, func):
     tickers = [col for col in df_diff.columns if col!='Timestamp']
     df_metric = pd.DataFrame(data=[func(df_diff[tickers].values)], columns=tickers)
@@ -51,6 +54,7 @@ def apply_running_metric(df_diff, func):
             data = [[row['Timestamp']] + [i for i in func(x)]]
             df_metric = pd.concat([df_metric, pd.DataFrame(data=data, columns=df_diff.columns)])
     df_metric.reset_index(drop=True, inplace=True)
+    df_metric[tickers] = df_metric[tickers].astype(float)
     return df_metric
 
 #///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

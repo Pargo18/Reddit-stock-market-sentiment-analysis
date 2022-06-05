@@ -5,12 +5,14 @@ import Diff_Volatility_Metric as dvm
 
 #///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-def sort_portfolio_quintiles(metric, n_port=5):
+def sort_portfolio(metric, n_port=5):
     port_sort = list(pd.qcut(metric.values.flatten(), q=n_port, labels=[i+1 for i in range(n_port)]).T)
     df_portfolio = pd.DataFrame(data=[port_sort], columns=metric.columns)
+    df_portfolio[[col for col in df_portfolio.columns if col!='Timestamp']] = \
+        df_portfolio[[col for col in df_portfolio.columns if col != 'Timestamp']].astype(int)
     return df_portfolio
 
-def sort_running_portfolio_quintiles(metric, n_port=5):
+def sort_running_portfolio(metric, n_port=5):
 
     timestamps = list(metric['Timestamp'])
     metric.drop(columns=['Timestamp'], inplace=True)
@@ -23,13 +25,16 @@ def sort_running_portfolio_quintiles(metric, n_port=5):
 
     df_portfolio.reset_index(drop=True, inplace=True)
     df_portfolio.insert(0, column='Timestamp', value=timestamps)
-
+    df_portfolio[[col for col in df_portfolio.columns if col!='Timestamp']] =\
+        df_portfolio[[col for col in df_portfolio.columns if col != 'Timestamp']].astype(int)
     return df_portfolio
 
 def portfolio_returns(df_port, df_returns):
     df_merge = pd.concat([df_port, df_returns], axis=0).T
     df_merge.columns = ['Portfolio', 'Return']
     df_port_returns = df_merge.groupby(by=['Portfolio']).mean()
+    df_port_returns[[col for col in df_port_returns.columns if col!='Timestamp']] =\
+        df_port_returns[[col for col in df_port_returns.columns if col != 'Timestamp']].astype(float)
     return df_port_returns
 
 def portfolio_running_returns(df_port, df_returns):
@@ -56,6 +61,8 @@ def portfolio_running_returns(df_port, df_returns):
             continue
 
     df_port_returns.reset_index(drop=True, inplace=True)
+    df_port_returns[[col for col in df_port_returns.columns if col!='Timestamp']] =\
+        df_port_returns[[col for col in df_port_returns.columns if col != 'Timestamp']].astype(float)
 
     return df_port_returns
 

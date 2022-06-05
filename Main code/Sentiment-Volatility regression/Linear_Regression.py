@@ -5,7 +5,7 @@ from generate_features import compile_option_data, fix_features
 import seaborn as sns
 
 import matplotlib
-matplotlib.use("TkAgg")
+# matplotlib.use("TkAgg")
 
 #///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -66,6 +66,18 @@ def linear_regression(df, covariate_col, outcome_col, beta_Ho=None):
     p_val = calc_p_value(beta, beta_var, dof, beta_Ho=beta_Ho)
     f_val = calc_f_value(beta, X, Y)
     return beta, np.sqrt(beta_var), p_val[1:], f_val
+
+def linear_regression_portfolio(covariates, outcome, beta_Ho=None):
+    X = covariates
+    X = np.c_[np.ones(X.shape[0]).reshape(-1, 1), X]
+    Y = outcome.reshape(-1, 1)
+    dof = X.shape[0] - X.shape[1]
+    beta = solve_OLS(X, Y)
+    sigma_var = error_estimator(beta, X, Y)
+    beta_var = calc_beta_var(sigma_var, X)
+    p_val = calc_p_value(beta, beta_var, dof, beta_Ho=beta_Ho)
+    f_val = calc_f_value(beta, X, Y)
+    return beta, np.sqrt(beta_var), p_val, f_val
 
 #///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -191,7 +203,7 @@ if __name__ == '__main__':
     # import matplotlib.pyplot as plt
     # plt.suptitle(ticker, fontsize=16)
 
-    df_beta_ols.to_csv('..\\..\\Data\\Output\\Beta_OLS.csv')
-    df_beta_sd.to_csv('..\\..\\Data\\Output\\Beta_Sd.csv')
-    df_pval.to_csv('..\\..\\Data\\Output\\p_values.csv')
-    df_tstudent_dof.to_csv('..\\..\\Data\\Output\\dof_tstudent.csv', index=False)
+    df_beta_ols.to_csv('..\\..\\Data\\Output\\Sentiment - Volatility regression\\Beta_OLS.csv')
+    df_beta_sd.to_csv('..\\..\\Data\\Output\\Sentiment - Volatility regression\\Beta_Sd.csv')
+    df_pval.to_csv('..\\..\\Data\\Output\\Sentiment - Volatility regression\\p_values.csv')
+    df_tstudent_dof.to_csv('..\\..\\Data\\Sentiment - Volatility regression\\Output\\dof_tstudent.csv', index=False)

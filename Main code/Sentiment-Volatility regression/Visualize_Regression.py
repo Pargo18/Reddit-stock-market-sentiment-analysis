@@ -24,7 +24,7 @@ plt.ylabel('Covariate', fontsize=14)
 # fig = plt.gcf()
 # fig.set_size_inches((6, 15), forward=False)
 # fig.savefig('..\\..\\Data\\Output\\p_val_heatmap.jpg', dpi=500)
-plt.savefig('..\\..\\Data\\Output\\p_val_heatmap.png', bbox_inches='tight')
+plt.savefig('..\\..\\Data\\Output\\Sentiment-Volatility regression\\p_val_heatmap.png', bbox_inches='tight')
 
 #///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -67,6 +67,6 @@ for j, ticker in enumerate(df_beta_ols.columns):
             ax.axes.get_xaxis().set_visible(False)
         if j > 0:
             ax.axes.get_yaxis().set_visible(False)
-plt.savefig('..\\..\\Data\\Output\\beta_dist.png', bbox_inches='tight')
+plt.savefig('..\\..\\Data\\Output\\Sentiment-Volatility regression\\beta_dist.png', bbox_inches='tight')
 
 

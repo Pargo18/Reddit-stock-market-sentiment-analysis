@@ -10,6 +10,20 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\Data\Portfolio sorting\Data_5_Factors_2x3_daily.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Data\Portfolio sorting\Raw data\Data_5_Factors_2x3_daily.CSV">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
       </map>
     </option>
   </component>

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import copy
 import Diff_Volatility_Metric as dvm
-import Quintile_Portofolio_Sorting as qps
+import Portofolio_Sorting as qps
 
 #///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -34,6 +34,6 @@ if __name__ == '__main__':
     df_metric = dvm.apply_running_metric(df_diff, func=metric_func)
 
     n_port = 5
-    df_port_sort = qps.sort_running_portfolio_quintiles(metric=copy.deepcopy(df_metric), n_port=n_port)
+    df_port_sort = qps.sort_running_portfolio(metric=copy.deepcopy(df_metric), n_port=n_port)
     df_port_returns = qps.portfolio_running_returns(df_port=copy.deepcopy(df_port_sort), df_returns=copy.deepcopy(return_data))
 
