@@ -65,7 +65,7 @@ if __name__ == '__main__':
     df_IV = pd.read_excel(input_folder + '\\Processed IV\\' + 'OrganizedIV.xlsx')
     df_IV['Timestamp'] = df_IV['Timestamp'].dt.date
     df_IV.dropna(axis=0, how='all', inplace=True)
-    df_IV.fillna(method='ffill', inplace=True)
+    df_IV.fillna(method='bfill', inplace=True)
 
     df_RV = pd.read_excel(input_folder + '\\Processed RV\\' +'RV_10days.xlsx')
     df_RV['Timestamp'] = df_RV['Timestamp'].dt.date
@@ -77,8 +77,8 @@ if __name__ == '__main__':
     return_data['Timestamp'] = pd.to_datetime(return_data['Timestamp']).dt.date
 
     df_diff = dvm.clean_diff_timelines(df_RV, df_IV)
-    df_metric = dvm.apply_running_metric(copy.deepcopy(df_diff), func=dvm.metric_norm)
-    # df_metric = dvm.apply_running_metric(copy.deepcopy(df_diff), func=dvm.metric_last)
+    # df_metric = dvm.apply_running_metric(copy.deepcopy(df_diff), func=dvm.metric_norm)
+    df_metric = dvm.apply_running_metric(copy.deepcopy(df_diff), func=dvm.metric_last)
     df_metric.interpolate(method='linear', axis=0, inplace=True)
     df_metric.dropna(how='all', axis=1, inplace=True)
 
@@ -91,9 +91,6 @@ if __name__ == '__main__':
     df_risk['Timestamp'] = pd.to_datetime(df_risk['Timestamp'].astype(str), format='%Y%m%d')
     df_risk['Timestamp'] = pd.to_datetime(df_risk['Timestamp']).dt.date
 
-
-
-
     common_timestamps = []
     for timestamp in df_port_returns['Timestamp']:
         if timestamp in list(df_risk['Timestamp']):
@@ -101,39 +98,63 @@ if __name__ == '__main__':
 
     df_risk.drop(columns=['RF'], inplace=True)
 
+
+
+
+    output_folder = '..\\..\\Data\\Output\\Portfolio sorting\\5 factors'
+
     covariate_names = [col for col in df_risk.columns if col!='Timestamp']
     outcome_names = ['top', 'bottom', 'EW', 'L/S']
 
     df_covariates = df_risk[df_risk['Timestamp'].isin(common_timestamps)][covariate_names]
     df_outcomes = df_port_returns[df_port_returns['Timestamp'].isin(common_timestamps)][outcome_names]
 
-
     df_beta_ols = pd.DataFrame(data=[], columns=outcome_names, index=['Intercept']+covariate_names)
     df_beta_sd = pd.DataFrame(data=[], columns=outcome_names, index=['Intercept']+covariate_names)
-    # df_pval = pd.DataFrame(data=[], columns=outcome_names, index=['Intercept']+covariate_names+['ANOVA'])
+    df_t_stat = pd.DataFrame(data=[], columns=outcome_names, index=['Intercept']+covariate_names)
     df_pval = pd.DataFrame(data=[], columns=outcome_names, index=['Intercept']+covariate_names)
+    df_R_sq = pd.DataFrame(data=[], columns=outcome_names, index=[0])
+    df_SE = pd.DataFrame(data=[], columns=outcome_names, index=[0])
     df_tstudent_dof = pd.DataFrame(data=[], columns=outcome_names, index=[0])
+    df_alpha = pd.DataFrame(data=[], columns=outcome_names, index=['Estimator', 'Standard error', 'p-value'])
 
     for outcome in outcome_names:
-        beta, beta_sd, p_val, f_val = linear_regression_portfolio(covariates=df_covariates.values, outcome=df_outcomes[outcome].values)
+        beta, beta_sd, p_val, f_val, t_stat, R_sq, SE = linear_regression_portfolio(covariates=df_covariates.values, outcome=df_outcomes[outcome].values)
         df_beta_ols[outcome] = beta
         df_beta_sd[outcome] = beta_sd
-        # df_pval[outcome] = np.append(p_val, f_val)
+        df_t_stat[outcome] = t_stat
         df_pval[outcome] = p_val
+        df_R_sq[outcome] = R_sq
+        df_SE[outcome] = SE
         df_tstudent_dof[outcome] = len(df_covariates) - (len(covariate_names) + 1)
 
-    df_beta_ols.to_csv('..\\..\\Data\\Output\\Portfolio sorting\\Beta_OLS.csv')
-    df_beta_sd.to_csv('..\\..\\Data\\Output\\Portfolio sorting\\Beta_Sd.csv')
-    df_pval.to_csv('..\\..\\Data\\Output\\Portfolio sorting\\p_values.csv')
-    df_tstudent_dof.to_csv('..\\..\\Data\\Output\\Portfolio sorting\\dof_tstudent.csv', index=False)
+        t_obs = (beta[0] - 0) / beta_sd[0]
+        pval_alpha = 1 - t.cdf(x=np.abs(t_obs), df=df_tstudent_dof[outcome].values, loc=0, scale=1)
+        df_alpha[outcome] = [beta[0].item(), beta_sd[0], pval_alpha.item()]
 
+        df_outcome_summary = pd.DataFrame(data=np.vstack((beta.flatten(), beta_sd, t_stat,
+                                                          np.append(R_sq, np.ones(len(covariate_names))*np.nan),
+                                                          np.append(SE, np.ones(len(covariate_names))*np.nan))),
+                                          columns=['Intercept']+covariate_names,
+                                          index=['Coefficient', 'Std error', 't-stat', 'R^2', 'SE'])
+
+        # df_outcome_summary.to_csv(output_folder + '\\Summary_' + outcome + '.csv')
+
+    df_beta_ols.to_csv(output_folder + '\\Beta_OLS.csv')
+    df_beta_sd.to_csv(output_folder + '\\Beta_Sd.csv')
+    df_t_stat.to_csv(output_folder + '\\t-stat.csv')
+    df_pval.to_csv(output_folder + '\\p_values.csv')
+    df_R_sq.to_csv(output_folder + '\\R_squared.csv', index=False)
+    df_SE.to_csv(output_folder + '\\SE.csv', index=False)
+    df_tstudent_dof.to_csv(output_folder + '\\dof_tstudent.csv', index=False)
+    df_tstudent_dof.to_csv(output_folder + '\\alpha_results.csv', index=False)
 
 
     sns.heatmap(df_pval)
     plt.title('p-value per outcome and risk factor', fontsize=16)
     plt.xlabel('Outcome', fontsize=14)
     plt.ylabel('Risk factors', fontsize=14)
-    plt.savefig('..\\..\\Data\\Output\\Portfolio sorting\\p_val_heatmap.png', bbox_inches='tight')
+    plt.savefig(output_folder + '\\p_val_heatmap.png', bbox_inches='tight')
 
 
     fig, axs = plt.subplots(df_beta_ols.shape[0], df_beta_ols.shape[1])
@@ -177,7 +198,7 @@ if __name__ == '__main__':
                 ax.axes.get_xaxis().set_visible(False)
             if j > 0:
                 ax.axes.get_yaxis().set_visible(False)
-    plt.savefig('..\\..\\Data\\Output\\Portfolio sorting\\beta_dist.png', bbox_inches='tight')
+    plt.savefig(output_folder + '\\beta_dist.png', bbox_inches='tight')
 
 
     # fig, axs = plt.subplots(df_beta_ols.shape[0]-1, df_beta_ols.shape[1])
@@ -229,9 +250,5 @@ if __name__ == '__main__':
     g = sns.PairGrid(df, y_vars=outcome_names, x_vars=covariate_names, height=4)
     g.map(sns.regplot, color='blue')
     # g.set(ylim=(-1, 11), yticks=[0, 5, 10])
-    plt.savefig('..\\..\\Data\\Output\\Portfolio sorting\\regression.png', bbox_inches='tight')
+    plt.savefig(output_folder + '\\regression.png', bbox_inches='tight')
 
-
-    reg = LinearRegression().fit(df_covariates, df_outcomes['top'].values.reshape(-1, 1))
-    reg.coef_
-    reg.intercept_

@@ -3,6 +3,7 @@ import pandas as pd
 from scipy.stats import t, f
 from generate_features import compile_option_data, fix_features
 import seaborn as sns
+from sklearn.metrics import r2_score
 
 import matplotlib
 # matplotlib.use("TkAgg")
@@ -34,11 +35,12 @@ def calc_beta_var(sigma_var, X):
 def calc_p_value(beta, beta_var, dof, beta_Ho=None):
     if beta_Ho is None:
         beta_Ho = np.zeros(beta.shape[0]).reshape(-1, 1)
-    p_val = np.repeat(1.0, repeats=beta.shape[0])
-    for i, (b, b_Ho, b_var) in enumerate(zip(beta, beta_Ho, beta_var)):
-        T_obs = (b - b_Ho) / np.sqrt(b_var)
-        p_val[i] = 2 * (1 - t.cdf(x=np.abs(T_obs), df=dof, loc=0, scale=1))
-    return p_val
+    p_val = np.ones(beta.shape[0])
+    T_obs = np.zeros(beta.shape[0])
+    for i, (b, b_Ho, b_var) in enumerate(zip(beta.flatten(), beta_Ho, beta_var)):
+        T_obs[i] = (b - b_Ho) / np.sqrt(b_var)
+        p_val[i] = 2 * (1 - t.cdf(x=np.abs(T_obs[i]), df=dof, loc=0, scale=1))
+    return p_val, T_obs
 
 def calc_f_value(beta, X, Y):
     p_1 = 1
@@ -75,9 +77,11 @@ def linear_regression_portfolio(covariates, outcome, beta_Ho=None):
     beta = solve_OLS(X, Y)
     sigma_var = error_estimator(beta, X, Y)
     beta_var = calc_beta_var(sigma_var, X)
-    p_val = calc_p_value(beta, beta_var, dof, beta_Ho=beta_Ho)
+    p_val, t_stat = calc_p_value(beta, beta_var, dof, beta_Ho=beta_Ho)
     f_val = calc_f_value(beta, X, Y)
-    return beta, np.sqrt(beta_var), p_val, f_val
+    R_sq = r2_score(Y, np.dot(X, beta))
+    SE = np.sqrt(np.sum(np.square(Y - np.dot(X, beta))) / (Y.shape[0] - 2))
+    return beta, np.sqrt(beta_var), p_val, f_val, t_stat, R_sq, SE
 
 #///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
