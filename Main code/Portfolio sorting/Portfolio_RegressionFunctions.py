@@ -13,8 +13,8 @@ from Linear_Regression import linear_regression_portfolio
 from sklearn.linear_model import LinearRegression
 
 
-import matplotlib
-matplotlib.use("TkAgg")
+# import matplotlib
+# matplotlib.use("TkAgg")
 # matplotlib.use("Agg")
 
 #///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -75,6 +75,9 @@ if __name__ == '__main__':
     return_data = pd.read_csv('..\\..\\Data\\Return_data.csv')
     return_data.rename(columns={'Date': 'Timestamp'}, inplace=True)
     return_data['Timestamp'] = pd.to_datetime(return_data['Timestamp']).dt.date
+    return_data[[col for col in return_data.columns if col != 'Timestamp']] =\
+        return_data[[col for col in return_data.columns if col != 'Timestamp']].shift(-1)
+
 
     df_diff = dvm.clean_diff_timelines(df_RV, df_IV)
     # df_metric = dvm.apply_running_metric(copy.deepcopy(df_diff), func=dvm.metric_norm)
@@ -90,24 +93,27 @@ if __name__ == '__main__':
     df_risk.rename(columns={'date': 'Timestamp', 'Unnamed: 0': 'Timestamp'}, inplace=True)
     df_risk['Timestamp'] = pd.to_datetime(df_risk['Timestamp'].astype(str), format='%Y%m%d')
     df_risk['Timestamp'] = pd.to_datetime(df_risk['Timestamp']).dt.date
+    df_risk[[col for col in df_risk.columns if col != 'Timestamp']] =\
+        df_risk[[col for col in df_risk.columns if col != 'Timestamp']] / 100
 
     common_timestamps = []
     for timestamp in df_port_returns['Timestamp']:
         if timestamp in list(df_risk['Timestamp']):
             common_timestamps.append(timestamp)
 
-    df_risk.drop(columns=['RF'], inplace=True)
-
-
 
 
     output_folder = '..\\..\\Data\\Output\\Portfolio sorting\\5 factors'
 
+    #TODO
     covariate_names = [col for col in df_risk.columns if col!='Timestamp']
+    covariate_names.remove('RF')
+
     outcome_names = ['top', 'bottom', 'EW', 'L/S']
 
     df_covariates = df_risk[df_risk['Timestamp'].isin(common_timestamps)][covariate_names]
     df_outcomes = df_port_returns[df_port_returns['Timestamp'].isin(common_timestamps)][outcome_names]
+
 
     df_beta_ols = pd.DataFrame(data=[], columns=outcome_names, index=['Intercept']+covariate_names)
     df_beta_sd = pd.DataFrame(data=[], columns=outcome_names, index=['Intercept']+covariate_names)
@@ -138,7 +144,7 @@ if __name__ == '__main__':
                                           columns=['Intercept']+covariate_names,
                                           index=['Coefficient', 'Std error', 't-stat', 'R^2', 'SE'])
 
-        # df_outcome_summary.to_csv(output_folder + '\\Summary_' + outcome + '.csv')
+        df_outcome_summary.to_csv(output_folder + '\\Summary_' + outcome.replace('/', '') + '.csv')
 
     df_beta_ols.to_csv(output_folder + '\\Beta_OLS.csv')
     df_beta_sd.to_csv(output_folder + '\\Beta_Sd.csv')
@@ -148,6 +154,27 @@ if __name__ == '__main__':
     df_SE.to_csv(output_folder + '\\SE.csv', index=False)
     df_tstudent_dof.to_csv(output_folder + '\\dof_tstudent.csv', index=False)
     df_tstudent_dof.to_csv(output_folder + '\\alpha_results.csv', index=False)
+
+
+
+    covariate_names2 = copy.deepcopy(covariate_names)
+    covariate_names2.append('RF')
+    df_covariates2 = df_risk[df_risk['Timestamp'].isin(common_timestamps)][covariate_names2]
+    dummy = df_outcomes - pd.DataFrame(data=np.c_[df_covariates2['RF'].values, df_covariates2['RF'].values,
+                                                  np.zeros(len(df_covariates2)), np.zeros(len(df_covariates2))],
+                                       columns=['top', 'bottom', 'L/S', 'EW'])
+    # dummy_2 = np.log(df_outcomes)
+    cum_return = df_outcomes.sum(axis=0)
+    annual_return = df_outcomes.mean(axis=0) * 252
+    return_std = df_outcomes.std(axis=0)
+    sharpe = dummy.mean(axis=0) / return_std
+    alpha = df_alpha.loc['Estimator']
+    annual_alpha = alpha * 252
+
+    df_performance = pd.concat([cum_return, annual_return, return_std, sharpe, alpha, annual_alpha], axis=1)
+    df_performance.columns = ['Cumulative return', 'Annual return', 'STD', 'Sharpe ratio', 'Alpha', 'Annual alpha']
+    df_performance = df_performance.transpose()
+
 
 
     sns.heatmap(df_pval)
@@ -199,48 +226,6 @@ if __name__ == '__main__':
             if j > 0:
                 ax.axes.get_yaxis().set_visible(False)
     plt.savefig(output_folder + '\\beta_dist.png', bbox_inches='tight')
-
-
-    # fig, axs = plt.subplots(df_beta_ols.shape[0]-1, df_beta_ols.shape[1])
-    # plt.suptitle('Regression model of each outcome projected per covariate-outcome plane', fontsize=12)
-    # for j, outcome in enumerate(df_beta_ols.columns):
-    #     X = df_covariates.values
-    #     X = np.c_[np.ones(X.shape[0]), X]
-    #     Y = df_outcomes[outcome].values
-    #     XX = np.vstack((X.min(axis=0), X.max(axis=0)))
-    #     Y_hat = np.dot(df_beta_ols[outcome].values, XX.T)
-    #     beta = df_beta_ols[outcome].values
-    #     X = X[:, 1:]
-    #     XX = XX[:, 1:]
-    #     for i, covariate in enumerate([idx for idx in df_beta_ols.index if idx!='Intercept']):
-    #         ax = axs[i, j]
-    #         ax.scatter(X[:, i], Y, color='r')
-    #         ax.plot(XX[:, i], Y_hat, color='b')
-    #         # ax.plot(XX[:, i], beta[0]+XX[:, i]*beta[i+1], color='b')
-    #         ax.set_xlabel(outcome, fontsize=14)
-    #         ax.set_ylabel(covariate, fontsize=12)
-    #
-    #         ax.tick_params(
-    #             axis='both',
-    #             which='both',
-    #             bottom=False,
-    #             top=False,
-    #             left=False,
-    #             right=False,
-    #             labelbottom=False,
-    #             labeltop=False,
-    #             labelleft=False,
-    #             labelright=False,
-    #         )
-    #
-    #         ax.grid(False)
-    #
-    #         if i < axs.shape[0] - 1:
-    #             ax.axes.get_xaxis().set_visible(False)
-    #         if j > 0:
-    #             ax.axes.get_yaxis().set_visible(False)
-    #
-    # plt.savefig('..\\..\\Data\\Output\\Portfolio sorting\\regression.png', bbox_inches='tight')
 
 
     outcome = 'top'
