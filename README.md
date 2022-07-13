@@ -1,5 +1,5 @@
 # Reddit-stock-market-sentiment-analysis
-This repo attempts to correlate the sentiment of posts/commets of the WallStreetBets subreddit to the volatility of popular stocks.
+
 In this project, the goal is to investigate the presence of mispricing in option markets and its
 underlying causes. More in particular, a possible candidate for implied volatility
 movements, namely the subreddit r/WallStreetBets, is investigated through sentiment analysis,
